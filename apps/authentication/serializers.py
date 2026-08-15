@@ -3,7 +3,6 @@ import os
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.core.mail import send_mail
 from rest_framework import serializers
 
@@ -14,24 +13,16 @@ from apps.security_photos.models import SecurityPhoto
 User = get_user_model()
 
 
-class RegistrationSerializer(serializers.Serializer):
-    student_id = serializers.CharField(max_length=32)
-    full_name = serializers.CharField(max_length=255)
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True, min_length=8)
-    live_photo = serializers.ImageField(required=True, write_only=True)
+class LivePhotoService:
+    """Shared validation and normalization for mandatory live-photo capture."""
 
-    def validate_email(self, value):
-        if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError('A user with this email already exists.')
-        return value.lower()
-
-    def _validate_live_photo(self, image):
+    @staticmethod
+    def validate(image, *, field_name='live_photo'):
         if image is None:
-            raise serializers.ValidationError('A live photo is required for registration.')
+            raise serializers.ValidationError(f'{field_name} is required.')
 
         if not hasattr(image, 'read'):
-            raise serializers.ValidationError('Live photo is invalid.')
+            raise serializers.ValidationError(f'{field_name} is invalid.')
 
         image.seek(0, os.SEEK_END)
         size = image.tell()
@@ -54,8 +45,21 @@ class RegistrationSerializer(serializers.Serializer):
 
         return image
 
+
+class RegistrationSerializer(serializers.Serializer):
+    student_id = serializers.CharField(max_length=32)
+    full_name = serializers.CharField(max_length=255)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    live_photo = serializers.ImageField(required=True, write_only=True)
+
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError('A user with this email already exists.')
+        return value.lower()
+
     def validate_live_photo(self, value):
-        return self._validate_live_photo(value)
+        return LivePhotoService.validate(value, field_name='live_photo')
 
     def create(self, validated_data):
         live_photo = validated_data.pop('live_photo')
@@ -104,3 +108,36 @@ class RegistrationSerializer(serializers.Serializer):
                     )
 
         return user
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+    live_photo = serializers.ImageField(required=True, write_only=True)
+
+    def validate_email(self, value):
+        return value.lower()
+
+    def validate_live_photo(self, value):
+        return LivePhotoService.validate(value, field_name='live_photo')
+
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+        user = User.objects.filter(email__iexact=email).first()
+
+        if user is None or not user.check_password(password):
+            raise serializers.ValidationError('Invalid email or password.')
+
+        if not user.is_active:
+            raise serializers.ValidationError({'email': 'This account is inactive.'})
+
+        latest_otp = EmailOTP.objects.filter(user=user).order_by('-created_at').first()
+        if latest_otp is None or not latest_otp.is_verified:
+            raise serializers.ValidationError({'email': 'Email must be verified before login.'})
+
+        attrs['user'] = user
+        return attrs
+
+    def create(self, validated_data):
+        return validated_data['user']

@@ -19,6 +19,7 @@ urlpatterns = [
 
     # App URLs
     path('api/v1/auth/', include('apps.authentication.urls')),
+    path('api/auth/', include('apps.authentication.urls')),
     path('api/v1/tokens/', include('apps.tokens.urls')),
     path('api/v1/photos/', include('apps.security_photos.urls')),
     path('api/v1/face-recognition/', include('apps.facerecognition.urls')),
