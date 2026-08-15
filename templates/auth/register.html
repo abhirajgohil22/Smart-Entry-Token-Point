@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Registration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      .camera-box {
+        width: 100%;
+        max-width: 480px;
+        aspect-ratio: 4 / 3;
+        background: #111;
+        border-radius: 0.75rem;
+        overflow: hidden;
+      }
+      video, canvas {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .hidden {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <div class="container py-5">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <div class="card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+              <h2 class="mb-4">Student Registration</h2>
+
+              <form id="registration-form" method="post" enctype="multipart/form-data">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Student ID</label>
+                    <input type="text" name="student_id" class="form-control" required />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" name="full_name" class="form-control" required />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" required />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control" required />
+                  </div>
+                </div>
+
+                <div class="mt-4">
+                  <label class="form-label">Live Photo</label>
+                  <div class="camera-box mx-auto mb-3">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas" class="hidden"></canvas>
+                  </div>
+                  <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" id="start-camera" class="btn btn-primary">Start Camera</button>
+                    <button type="button" id="capture-photo" class="btn btn-outline-primary">Capture Photo</button>
+                  </div>
+                  <input type="file" id="live_photo" name="live_photo" class="form-control mt-3" accept="image/png,image/jpeg" required />
+                </div>
+
+                <div id="status" class="alert alert-secondary mt-3 d-none"></div>
+
+                <button type="submit" class="btn btn-success mt-4 w-100">Register</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const fileInput = document.getElementById('live_photo');
+      const startCameraButton = document.getElementById('start-camera');
+      const captureButton = document.getElementById('capture-photo');
+      const statusBox = document.getElementById('status');
+
+      let stream = null;
+
+      async function startCamera() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+          video.srcObject = stream;
+          statusBox.textContent = 'Camera ready. Capture a photo to continue.';
+          statusBox.className = 'alert alert-info mt-3';
+          statusBox.classList.remove('d-none');
+        } catch (error) {
+          statusBox.textContent = 'Camera access was denied or unavailable.';
+          statusBox.className = 'alert alert-danger mt-3';
+          statusBox.classList.remove('d-none');
+        }
+      }
+
+      function capturePhoto() {
+        if (!stream) {
+          statusBox.textContent = 'Start the camera first.';
+          statusBox.className = 'alert alert-warning mt-3';
+          statusBox.classList.remove('d-none');
+          return;
+        }
+
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            statusBox.textContent = 'Could not capture the image.';
+            statusBox.className = 'alert alert-danger mt-3';
+            statusBox.classList.remove('d-none');
+            return;
+          }
+
+          const file = new File([blob], 'live-photo.png', { type: 'image/png' });
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          fileInput.files = dataTransfer.files;
+
+          statusBox.textContent = 'Photo captured successfully.';
+          statusBox.className = 'alert alert-success mt-3';
+          statusBox.classList.remove('d-none');
+        }, 'image/png', 0.95);
+      }
+
+      startCameraButton.addEventListener('click', startCamera);
+      captureButton.addEventListener('click', capturePhoto);
+
+      document.getElementById('registration-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const data = new FormData(form);
+
+        const response = await fetch('/api/v1/auth/register/', {
+          method: 'POST',
+          body: data,
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          const message = result?.detail || Object.values(result || {})[0] || 'Registration failed.';
+          statusBox.textContent = Array.isArray(message) ? message.join(', ') : message;
+          statusBox.className = 'alert alert-danger mt-3';
+          statusBox.classList.remove('d-none');
+          return;
+        }
+
+        statusBox.textContent = result.message || 'Registration successful.';
+        statusBox.className = 'alert alert-success mt-3';
+        statusBox.classList.remove('d-none');
+        form.reset();
+      });
+    </script>
+  </body>
+</html>
