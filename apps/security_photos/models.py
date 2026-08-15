@@ -58,6 +58,7 @@ class SecurityPhoto(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        db_table = 'security_photo'
         indexes = [
             models.Index(fields=['user'], name='idx_security_photo_user'),
             models.Index(fields=['event_type'], name='idx_security_photo_event'),
@@ -72,6 +73,9 @@ class SecurityPhoto(models.Model):
 
 class ProfilePhoto(models.Model):
     """User profile picture stored separately from security event capture records."""
+
+    class Meta:
+        db_table = 'profile_photo'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(

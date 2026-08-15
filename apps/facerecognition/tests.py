@@ -9,7 +9,10 @@ This test suite verifies:
 5. Dlib backend gracefully degrades when library unavailable
 """
 
+import io
+
 import pytest
+from PIL import Image
 from django.test import TestCase, override_settings
 from apps.facerecognition.services import (
     FaceRecognitionService,
@@ -25,6 +28,7 @@ from apps.facerecognition.backends.dlib_backend import (
     DisabledFaceRecognitionBackend,
     DlibFaceRecognitionBackend,
 )
+from apps.facerecognition.services.liveness import LivenessVerificationService
 
 
 class DisabledBackendTests(TestCase):
@@ -180,6 +184,39 @@ class FaceRecognitionServiceTests(TestCase):
         service = get_face_recognition_service()
         self.assertIsInstance(service, FaceRecognitionService)
 
+    @override_settings(FACE_RECOGNITION_ENABLED=False)
+    def test_verify_face_match_disabled_returns_not_enabled(self):
+        """Test verification gracefully declines when the feature is disabled."""
+        FaceRecognitionServiceFactory.reset()
+        service = FaceRecognitionService()
+        result = service.verify_face_match([0.1] * 128, [0.2] * 128, threshold=0.6)
+        self.assertEqual(result.status, FaceRecognitionStatus.NOT_ENABLED)
+        self.assertFalse(result.success)
+
+    @override_settings(FACE_RECOGNITION_ENABLED=True)
+    def test_verify_face_match_uses_default_threshold_without_crashing(self):
+        """Test verification handles enabled mode without assuming a biometric library is present."""
+        FaceRecognitionServiceFactory.reset()
+        service = FaceRecognitionService()
+        result = service.verify_face_match([0.1] * 128, [0.2] * 128)
+        self.assertIsInstance(result, FaceRecognitionResult)
+        self.assertTrue(result.status in {
+            FaceRecognitionStatus.NOT_ENABLED,
+            FaceRecognitionStatus.LIBRARY_NOT_AVAILABLE,
+            FaceRecognitionStatus.SUCCESS,
+            FaceRecognitionStatus.FACE_MISMATCH,
+            FaceRecognitionStatus.ERROR,
+            FaceRecognitionStatus.FAILED,
+        })
+
+    @override_settings(FACE_RECOGNITION_ENABLED=False)
+    def test_verify_security_photo_disabled_returns_safe_response(self):
+        """Test security-photo verification is safe and non-crashing when disabled."""
+        service = FaceRecognitionService()
+        result = service.verify_security_photo(None, threshold=0.6)
+        self.assertEqual(result.status, FaceRecognitionStatus.NOT_ENABLED)
+        self.assertFalse(result.success)
+
 
 class FaceRecognitionResultTests(TestCase):
     """Test suite for FaceRecognitionResult"""
@@ -210,6 +247,38 @@ class FaceRecognitionResultTests(TestCase):
         repr_str = repr(result)
         self.assertIn('FaceRecognitionResult', repr_str)
         self.assertIn('success', repr_str)
+
+
+class LivenessVerificationServiceTests(TestCase):
+    """Tests for the optional liveness verification wrapper."""
+
+    @override_settings(LIVENESS_ENABLED=False)
+    def test_liveness_bypasses_when_disabled(self):
+        service = LivenessVerificationService()
+        result = service.evaluate_frames([b'frame-1'])
+        self.assertEqual(result.status, FaceRecognitionStatus.SUCCESS)
+        self.assertTrue(result.data.get('challenge_bypassed'))
+
+    @override_settings(LIVENESS_ENABLED=True)
+    def test_liveness_requires_temporal_motion_when_enabled(self):
+        service = LivenessVerificationService()
+        frames = [b'frame', b'frame', b'frame']
+        result = service.evaluate_frames(frames)
+        self.assertEqual(result.status, FaceRecognitionStatus.LIVENESS_CHECK_FAILED)
+
+    @override_settings(LIVENESS_ENABLED=True)
+    def test_liveness_accepts_motionful_sequence(self):
+        service = LivenessVerificationService()
+        frames = []
+        for value in (0, 255, 128, 64):
+            image = Image.new('L', (120, 120), color=value)
+            buffer = io.BytesIO()
+            image.save(buffer, format='PNG')
+            frames.append(buffer.getvalue())
+
+        result = service.evaluate_frames(frames)
+        self.assertEqual(result.status, FaceRecognitionStatus.SUCCESS)
+        self.assertTrue(result.data.get('challenge_passed'))
 
 
 class DjangoBootstrapTests(TestCase):

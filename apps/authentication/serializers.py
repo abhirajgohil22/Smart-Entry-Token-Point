@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 from apps.authentication.models import EmailOTP
 from apps.facerecognition.services import FaceRecognitionService
+from apps.notifications.services import NotificationService
 from apps.security_photos.models import SecurityPhoto
 
 User = get_user_model()
@@ -17,7 +18,20 @@ class LivePhotoService:
     """Shared validation and normalization for mandatory live-photo capture."""
 
     @staticmethod
-    def validate(image, *, field_name='live_photo'):
+    def _read_bytes(image):
+        if image is None or not hasattr(image, 'read'):
+            return None
+
+        try:
+            image.seek(0)
+            data = image.read()
+            image.seek(0)
+            return data
+        except (AttributeError, OSError, ValueError):
+            return None
+
+    @staticmethod
+    def validate(image, *, field_name='live_photo', user=None):
         if image is None:
             raise serializers.ValidationError(f'{field_name} is required.')
 
@@ -42,6 +56,31 @@ class LivePhotoService:
             detected = imghdr.what(None, h=chunk)
             if detected not in {'jpeg', 'png'}:
                 raise serializers.ValidationError('Live photo is not a valid image.')
+
+        if user is not None:
+            payload = LivePhotoService._read_bytes(image)
+            if payload is None:
+                raise serializers.ValidationError('Live photo is not a valid image.')
+
+            from apps.security_photos.models import ProfilePhoto, SecurityPhoto
+            for existing in SecurityPhoto.objects.filter(user=user).order_by('-captured_at'):
+                if not existing.image:
+                    continue
+                try:
+                    with existing.image.open('rb') as fh:
+                        if fh.read() == payload:
+                            raise serializers.ValidationError('A reused photo or profile avatar cannot satisfy the live-photo requirement.')
+                except (FileNotFoundError, OSError, ValueError):
+                    continue
+
+            profile_photo = ProfilePhoto.objects.filter(user=user).first()
+            if profile_photo and profile_photo.image:
+                try:
+                    with profile_photo.image.open('rb') as fh:
+                        if fh.read() == payload:
+                            raise serializers.ValidationError('A reused photo or profile avatar cannot satisfy the live-photo requirement.')
+                except (FileNotFoundError, OSError, ValueError):
+                    pass
 
         return image
 
@@ -86,12 +125,11 @@ class RegistrationSerializer(serializers.Serializer):
         )
 
         otp = EmailOTP.create_for_user(user, purpose='REGISTRATION')
-        send_mail(
-            subject='Your Smart Campus OTP',
-            message=f'Your registration verification code is: {otp.code}',
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=False,
+        NotificationService.dispatch(
+            user,
+            'EMAIL_VERIFICATION',
+            metadata={'otp_code': otp.code, 'purpose': 'REGISTRATION'},
+            channel='EMAIL',
         )
 
         if settings.FACE_RECOGNITION_ENABLED:
@@ -135,6 +173,10 @@ class LoginSerializer(serializers.Serializer):
         latest_otp = EmailOTP.objects.filter(user=user).order_by('-created_at').first()
         if latest_otp is None or not latest_otp.is_verified:
             raise serializers.ValidationError({'email': 'Email must be verified before login.'})
+
+        live_photo = attrs.get('live_photo')
+        if live_photo is not None:
+            LivePhotoService.validate(live_photo, field_name='live_photo', user=user)
 
         attrs['user'] = user
         return attrs

@@ -2,11 +2,12 @@
 
 from django.urls import path
 
-from apps.profile.views import ProfileAPIView, ProfileAvatarUploadAPIView
+from apps.profile.views import ProfileAPIView, ProfileAvatarUploadAPIView, StudentDashboardView
 
 app_name = 'profile'
 
 urlpatterns = [
     path('', ProfileAPIView.as_view(), name='profile-detail'),
     path('avatar/', ProfileAvatarUploadAPIView.as_view(), name='avatar-upload'),
+    path('dashboard/', StudentDashboardView.as_view(), name='dashboard'),
 ]

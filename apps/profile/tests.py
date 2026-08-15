@@ -35,9 +35,9 @@ class ProfileSecurityIsolationTests(TestCase):
         otp.save(update_fields=['is_verified'])
         self.client.force_authenticate(self.user)
 
-    def _make_image(self, filename='test.png', size=(32, 32)):
+    def _make_image(self, filename='test.png', size=(32, 32), color='red'):
         buffer = BytesIO()
-        Image.new('RGB', size, color='red').save(buffer, format='PNG')
+        Image.new('RGB', size, color=color).save(buffer, format='PNG')
         buffer.seek(0)
         return SimpleUploadedFile(filename, buffer.getvalue(), content_type='image/png')
 
@@ -182,7 +182,7 @@ class ProfileSecurityIsolationTests(TestCase):
             {
                 'email': self.user.email,
                 'password': 'S3cur3Password!',
-                'live_photo': self._make_image('login.png'),
+                'live_photo': self._make_image('login.png', size=(64, 64), color=(50, 60, 70)),
             },
             format='multipart',
         )
@@ -214,9 +214,9 @@ class ProfileAPITests(TestCase):
         otp.save(update_fields=['is_verified'])
         self.client.force_authenticate(self.user)
 
-    def _make_image(self, filename='test.png', size=(32, 32)):
+    def _make_image(self, filename='test.png', size=(32, 32), color='blue'):
         buffer = BytesIO()
-        Image.new('RGB', size, color='blue').save(buffer, format='PNG')
+        Image.new('RGB', size, color=color).save(buffer, format='PNG')
         buffer.seek(0)
         return SimpleUploadedFile(filename, buffer.getvalue(), content_type='image/png')
 

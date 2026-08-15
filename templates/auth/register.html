@@ -25,6 +25,13 @@
       .hidden {
         display: none !important;
       }
+      .challenge-box {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: .75rem;
+        padding: 1rem;
+        margin-top: 1rem;
+      }
     </style>
   </head>
   <body class="bg-light">
@@ -61,7 +68,11 @@
                     <video id="video" autoplay playsinline></video>
                     <canvas id="canvas" class="hidden"></canvas>
                   </div>
-                  <div class="d-flex gap-2 flex-wrap">
+                  <div id="challenge-box" class="challenge-box hidden">
+                    <strong>Challenge:</strong>
+                    <span id="challenge-text">Waiting for camera...</span>
+                  </div>
+                  <div class="d-flex gap-2 flex-wrap mt-3">
                     <button type="button" id="start-camera" class="btn btn-primary">Start Camera</button>
                     <button type="button" id="capture-photo" class="btn btn-outline-primary">Capture Photo</button>
                   </div>
@@ -87,6 +98,20 @@
       const statusBox = document.getElementById('status');
 
       let stream = null;
+      const challengeBox = document.getElementById('challenge-box');
+      const challengeText = document.getElementById('challenge-text');
+      const livenessChallenges = [
+        'Blink slowly',
+        'Turn head slightly right',
+        'Look left and right',
+        'Nod once gently'
+      ];
+
+      function setChallengePrompt() {
+        const message = livenessChallenges[Math.floor(Math.random() * livenessChallenges.length)];
+        challengeText.textContent = message;
+        challengeBox.classList.remove('hidden');
+      }
 
       async function startCamera() {
         try {
@@ -110,6 +135,8 @@
           return;
         }
 
+        setChallengePrompt();
+
         const context = canvas.getContext('2d');
         canvas.width = video.videoWidth || 640;
         canvas.height = video.videoHeight || 480;
@@ -128,7 +155,7 @@
           dataTransfer.items.add(file);
           fileInput.files = dataTransfer.files;
 
-          statusBox.textContent = 'Photo captured successfully.';
+          statusBox.textContent = 'Photo captured successfully. Follow the challenge prompt.';
           statusBox.className = 'alert alert-success mt-3';
           statusBox.classList.remove('d-none');
         }, 'image/png', 0.95);

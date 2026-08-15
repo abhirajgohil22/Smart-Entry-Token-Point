@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Audit Trail - Smart Campus{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="text-primary"><i class="fas fa-shield-alt"></i> Admin Audit Trail & Security Events</h1>
+            <p class="text-muted">Monitor security photo events, token activity, and system notifications.</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Active Tokens</h5>
+                    <h2 class="text-primary">{{ active_tokens }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Revoked Tokens</h5>
+                    <h2 class="text-warning">{{ revoked_tokens }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Expired Tokens</h5>
+                    <h2 class="text-danger">{{ expired_tokens }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <h5 class="card-title">Total Events</h5>
+                    <h2 class="text-info">{{ recent_events|length }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Type Summary -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Security Events by Type</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            {% for event_type, count in event_summary.items %}
+                            <tr>
+                                <td>{{ event_type }}</td>
+                                <td><span class="badge bg-primary">{{ count }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verification Status Summary -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Verification Status Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <tbody>
+                            {% for status_type, count in verification_summary.items %}
+                            <tr>
+                                <td>{{ status_type }}</td>
+                                <td>
+                                    {% if status_type == "Validated" %}
+                                        <span class="badge bg-success">{{ count }}</span>
+                                    {% elif status_type == "Rejected" %}
+                                        <span class="badge bg-danger">{{ count }}</span>
+                                    {% elif status_type == "Pending" %}
+                                        <span class="badge bg-warning">{{ count }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ count }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Security Events -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <div class="row">
+                        <div class="col">
+                            <h5 class="mb-0"><i class="fas fa-eye-slash"></i> Recent Security Photo Events</h5>
+                        </div>
+                        <div class="col text-end">
+                            <a href="/admin/security_photos/securityphoto/" class="btn btn-sm btn-light">View All in Admin Panel</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Request ID</th>
+                                    <th>User</th>
+                                    <th>Event Type</th>
+                                    <th>Captured At</th>
+                                    <th>Verification Status</th>
+                                    <th>IP Address</th>
+                                    <th>Face Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in recent_events %}
+                                <tr>
+                                    <td><code>{{ event.request_id|truncatechars:20 }}</code></td>
+                                    <td>{{ event.user.email }}</td>
+                                    <td><span class="badge bg-info">{{ event.get_event_type_display }}</span></td>
+                                    <td><small>{{ event.captured_at|date:"Y-m-d H:i:s" }}</small></td>
+                                    <td>
+                                        {% if event.verification_status == "VALIDATED" %}
+                                            <span class="badge bg-success">Validated</span>
+                                        {% elif event.verification_status == "REJECTED" %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% elif event.verification_status == "PENDING" %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ event.verification_status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><code>{{ event.ip_address }}</code></td>
+                                    <td>
+                                        {% if event.face_confidence %}
+                                            {{ event.face_confidence|floatformat:2 }}%
+                                        {% else %}
+                                            <em class="text-muted">N/A</em>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">No recent security events.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Notifications -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <div class="row">
+                        <div class="col">
+                            <h5 class="mb-0"><i class="fas fa-bell"></i> Recent System Notifications</h5>
+                        </div>
+                        <div class="col text-end">
+                            <a href="/admin/notifications/notificationlog/" class="btn btn-sm btn-light">View All in Admin Panel</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>User</th>
+                                    <th>Event Type</th>
+                                    <th>Channel</th>
+                                    <th>Status</th>
+                                    <th>Subject</th>
+                                    <th>Sent At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for notification in recent_notifications %}
+                                <tr>
+                                    <td>{{ notification.user.email }}</td>
+                                    <td><span class="badge bg-primary">{{ notification.event_type|replace:"_":" " }}</span></td>
+                                    <td>
+                                        {% if notification.channel == "EMAIL" %}
+                                            <i class="fas fa-envelope text-primary"></i> Email
+                                        {% elif notification.channel == "SYSTEM" %}
+                                            <i class="fas fa-desktop text-secondary"></i> System
+                                        {% else %}
+                                            <i class="fas fa-envelope text-primary"></i> Both
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if notification.status == "SENT" %}
+                                            <span class="badge bg-success">Sent</span>
+                                        {% elif notification.status == "FAILED" %}
+                                            <span class="badge bg-danger">Failed</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">{{ notification.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td><small>{{ notification.subject|truncatechars:40 }}</small></td>
+                                    <td><small>{{ notification.sent_at|date:"Y-m-d H:i:s"|default:"Pending" }}</small></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted">No recent notifications.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Actions -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-wrench"></i> Admin Actions</h5>
+                </div>
+                <div class="card-body">
+                    <p>Manage security photos and data retention:</p>
+                    <ul>
+                        <li><a href="/admin/security_photos/securityphoto/">View all security photos in admin panel</a></li>
+                        <li><a href="/admin/notifications/notificationlog/">View all notifications in admin panel</a></li>
+                        <li>Run photo cleanup: <code>python manage.py cleanup_old_photos --days 30</code></li>
+                        <li>Dry-run photo cleanup: <code>python manage.py cleanup_old_photos --days 30 --dry-run</code></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+    code {
+        background-color: #f4f4f4;
+        padding: 2px 4px;
+        border-radius: 3px;
+        font-size: 0.9em;
+    }
+</style>
+{% endblock %}

@@ -20,8 +20,16 @@ from apps.facerecognition.services.base import (
     FaceRecognitionResult,
     FaceRecognitionStatus,
 )
+from apps.facerecognition.services.liveness import LivenessVerificationService
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    'FaceRecognitionService',
+    'FaceRecognitionServiceFactory',
+    'get_face_recognition_service',
+    'LivenessVerificationService',
+]
 
 
 class FaceRecognitionServiceFactory:
@@ -97,16 +105,6 @@ class FaceRecognitionService:
 
     This is the recommended way to access face recognition functionality.
     It delegates to the appropriate backend selected by the factory.
-
-    Example usage:
-        from apps.facerecognition.services import FaceRecognitionService
-
-        service = FaceRecognitionService()
-        result = service.detect_face(image_bytes)
-        if result.success:
-            print(f"Face detected: {result.data}")
-        else:
-            print(f"Error: {result.error_message}")
     """
 
     def __init__(self):
@@ -165,6 +163,113 @@ class FaceRecognitionService:
             FaceRecognitionResult with match information
         """
         return self.backend.compare_faces(embedding1, embedding2, **kwargs)
+
+    def verify_face_match(self, embedding1, embedding2, threshold=0.6, **kwargs) -> FaceRecognitionResult:
+        """1:1 face verification using the default threshold of 0.6."""
+        try:
+            return self.backend.verify_face_match(
+                embedding1,
+                embedding2,
+                threshold=threshold,
+                **kwargs,
+            )
+        except Exception as exc:  # pragma: no cover - defensive guard for runtime failures
+            logger.exception("Face verification raised an unexpected exception")
+            return FaceRecognitionResult(
+                status=FaceRecognitionStatus.ERROR,
+                error_message=f"Face verification failed: {exc}",
+            )
+
+    def verify_security_photo(self, security_photo, *, user=None, threshold=0.6, **kwargs) -> FaceRecognitionResult:
+        """Verify a SecurityPhoto frame against the enrolled encoding for the user."""
+        if not getattr(settings, 'FACE_RECOGNITION_ENABLED', False):
+            return FaceRecognitionResult(
+                status=FaceRecognitionStatus.NOT_ENABLED,
+                data={'match': False, 'threshold': threshold},
+                error_message='Face recognition is disabled; live-photo verification is single-factor only.',
+            )
+
+        if security_photo is None:
+            return FaceRecognitionResult(
+                status=FaceRecognitionStatus.INVALID_INPUT,
+                error_message='A security photo is required for verification.',
+            )
+
+        target_user = user or getattr(security_photo, 'user', None)
+        if target_user is None:
+            return FaceRecognitionResult(
+                status=FaceRecognitionStatus.INVALID_INPUT,
+                error_message='No user available to verify against the security photo.',
+            )
+
+        try:
+            enrolled = getattr(target_user, 'face_encoding', None)
+            if enrolled is None or not getattr(enrolled, 'encoding', None):
+                return FaceRecognitionResult(
+                    status=FaceRecognitionStatus.FAILED,
+                    data={'match': False, 'threshold': threshold},
+                    error_message='No enrolled face encoding exists for this user.',
+                )
+
+            image = getattr(security_photo, 'image', None)
+            if image is None:
+                return FaceRecognitionResult(
+                    status=FaceRecognitionStatus.INVALID_INPUT,
+                    error_message='Security photo image is missing.',
+                )
+
+            with image.open('rb') as fh:
+                image_bytes = fh.read()
+
+            if not image_bytes:
+                return FaceRecognitionResult(
+                    status=FaceRecognitionStatus.INVALID_INPUT,
+                    error_message='Security photo is empty.',
+                )
+
+            embedding_result = self.generate_face_embedding(image_bytes, **kwargs)
+            if not embedding_result.success:
+                return FaceRecognitionResult(
+                    status=FaceRecognitionStatus.FAILED,
+                    data={'match': False, 'threshold': threshold},
+                    error_message=embedding_result.error_message or 'Could not extract face embedding from the live security photo.',
+                )
+
+            verification = self.verify_face_match(
+                embedding_result.data.get('embedding', []),
+                enrolled.encoding,
+                threshold=threshold,
+                **kwargs,
+            )
+
+            if verification.status in (FaceRecognitionStatus.FAILED, FaceRecognitionStatus.FACE_MISMATCH):
+                return FaceRecognitionResult(
+                    status=FaceRecognitionStatus.FAILED,
+                    data={
+                        'match': False,
+                        'threshold': threshold,
+                        'confidence': verification.data.get('confidence', 0.0),
+                        'match_distance': verification.data.get('match_distance'),
+                    },
+                    error_message=verification.error_message or 'Face verification did not match the enrolled encoding.',
+                )
+
+            if verification.status == FaceRecognitionStatus.ERROR:
+                return FaceRecognitionResult(
+                    status=FaceRecognitionStatus.ERROR,
+                    data={'match': False, 'threshold': threshold},
+                    error_message=verification.error_message or 'Face verification failed unexpectedly.',
+                )
+
+            return verification
+
+        except Exception as exc:
+            logger.exception('Security photo verification raised an unexpected exception')
+            return FaceRecognitionResult(
+                status=FaceRecognitionStatus.ERROR,
+                data={'match': False, 'threshold': threshold},
+                error_message=f'Face verification failed unexpectedly: {exc}',
+            )
 
     def is_available(self) -> bool:
         """Check if face recognition is available and ready to use"""

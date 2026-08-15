@@ -26,6 +26,8 @@ class FaceRecognitionStatus(Enum):
     MULTIPLE_FACES_DETECTED = "multiple_faces_detected"
     LIVENESS_CHECK_FAILED = "liveness_check_failed"
     FACE_MISMATCH = "face_mismatch"
+    FAILED = "failed"
+    ERROR = "error"
     PROCESSING_ERROR = "processing_error"
 
 
@@ -122,6 +124,16 @@ class BaseFaceRecognitionBackend:
             FaceRecognitionResult with match confidence
         """
         raise NotImplementedError(f"{self.name} does not implement compare_faces")
+
+    def verify_face_match(
+        self, embedding1: List[float], embedding2: List[float], **kwargs
+    ) -> FaceRecognitionResult:
+        """High-level 1:1 verification wrapper with default threshold of 0.6."""
+        threshold = kwargs.get('threshold', kwargs.get('distance_threshold', 0.6))
+        compare_kwargs = dict(kwargs)
+        compare_kwargs.pop('threshold', None)
+        compare_kwargs.pop('distance_threshold', None)
+        return self.compare_faces(embedding1, embedding2, threshold=threshold, **compare_kwargs)
 
     def is_available(self) -> bool:
         """Check if the backend is available and ready to use"""

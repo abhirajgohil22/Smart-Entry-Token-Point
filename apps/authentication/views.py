@@ -10,11 +10,16 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.authentication.serializers import LoginSerializer, RegistrationSerializer
 from apps.authentication.throttles import LoginRateThrottle
+from apps.notifications.services import NotificationService
 from apps.security_photos.models import SecurityPhoto
 
 
 class RegistrationPageView(TemplateView):
     template_name = 'auth/register.html'
+
+
+class LoginPageView(TemplateView):
+    template_name = 'auth/login.html'
 
 
 class RegisterAPIView(generics.CreateAPIView):
@@ -61,6 +66,12 @@ class LoginAPIView(generics.CreateAPIView):
         )
 
         refresh = RefreshToken.for_user(user)
+        NotificationService.dispatch(
+            user,
+            'LOGIN_NEW_IP',
+            metadata={'ip_address': getattr(request, 'META', {}).get('REMOTE_ADDR', '127.0.0.1')},
+            channel='EMAIL',
+        )
         response_payload = {
             'message': 'Login successful.',
             'email': user.email,

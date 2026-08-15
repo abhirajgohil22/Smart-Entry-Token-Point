@@ -38,6 +38,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
+            options={"db_table": "profile_photo"},
         ),
         migrations.CreateModel(
             name="SecurityPhoto",
@@ -122,6 +123,7 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
+                "db_table": "security_photo",
                 "ordering": ["-captured_at"],
                 "indexes": [
                     models.Index(fields=["user"], name="idx_security_photo_user"),

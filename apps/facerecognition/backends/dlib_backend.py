@@ -273,7 +273,7 @@ class DlibFaceRecognitionBackend(BaseFaceRecognitionBackend):
         Args:
             embedding1: First face embedding vector
             embedding2: Second face embedding vector
-            **kwargs: Can include 'distance_threshold' (default: 0.6)
+            **kwargs: Can include 'threshold' or 'distance_threshold' (default: 0.6)
 
         Returns:
             FaceRecognitionResult with match_distance and is_match
@@ -288,34 +288,73 @@ class DlibFaceRecognitionBackend(BaseFaceRecognitionBackend):
             import face_recognition  # Dynamic import inside method
             import numpy as np
 
-            # Convert to numpy arrays
-            emb1 = np.array(embedding1)
-            emb2 = np.array(embedding2)
+            if embedding1 is None or embedding2 is None:
+                return FaceRecognitionResult(
+                    status=FaceRecognitionStatus.INVALID_INPUT,
+                    error_message="Both embeddings must be provided for comparison.",
+                )
 
-            # Calculate Euclidean distance
-            distance = np.linalg.norm(emb1 - emb2)
+            emb1 = np.asarray(embedding1, dtype=float)
+            emb2 = np.asarray(embedding2, dtype=float)
 
-            # Get threshold from kwargs or use default
-            distance_threshold = kwargs.get('distance_threshold', 0.6)
+            if emb1.shape != emb2.shape:
+                return FaceRecognitionResult(
+                    status=FaceRecognitionStatus.INVALID_INPUT,
+                    error_message="Embedding dimensions do not match.",
+                )
 
-            is_match = distance <= distance_threshold
+            distance = float(np.linalg.norm(emb1 - emb2))
+            threshold = float(kwargs.get('threshold', kwargs.get('distance_threshold', 0.6)))
+            if threshold <= 0:
+                threshold = 0.6
+
+            is_match = distance <= threshold
+            confidence = max(0.0, 1.0 - (distance / threshold)) if threshold > 0 else 0.0
+
+            status = (
+                FaceRecognitionStatus.SUCCESS
+                if is_match
+                else FaceRecognitionStatus.FACE_MISMATCH
+            )
 
             return FaceRecognitionResult(
-                status=FaceRecognitionStatus.SUCCESS,
+                status=status,
                 data={
-                    'match_distance': float(distance),
-                    'distance_threshold': distance_threshold,
+                    'match_distance': distance,
+                    'distance_threshold': threshold,
                     'is_match': is_match,
-                    'confidence': max(0.0, 1.0 - (distance / distance_threshold)),
+                    'confidence': round(confidence, 6),
+                    'verdict': 'match' if is_match else 'no_match',
                 },
             )
 
         except Exception as e:
             logger.error(f"Face comparison error: {str(e)}")
             return FaceRecognitionResult(
-                status=FaceRecognitionStatus.PROCESSING_ERROR,
+                status=FaceRecognitionStatus.ERROR,
                 error_message=f"Face comparison failed: {str(e)}",
             )
+
+    def verify_face_match(
+        self, embedding1: List[float], embedding2: List[float], **kwargs
+    ) -> FaceRecognitionResult:
+        """1:1 verification wrapper with default 0.6 threshold and explicit verdict."""
+        threshold = kwargs.get('threshold', kwargs.get('distance_threshold', 0.6))
+        compare_kwargs = dict(kwargs)
+        compare_kwargs.pop('threshold', None)
+        compare_kwargs.pop('distance_threshold', None)
+        result = self.compare_faces(embedding1, embedding2, threshold=threshold, **compare_kwargs)
+        if result.status == FaceRecognitionStatus.FACE_MISMATCH:
+            return FaceRecognitionResult(
+                status=FaceRecognitionStatus.FAILED,
+                data={
+                    **result.data,
+                    'match': False,
+                    'verdict': 'no_match',
+                },
+                error_message='Face verification failed for the provided subject.',
+            )
+        return result
 
     def is_available(self) -> bool:
         """Check if the dlib backend is available"""
