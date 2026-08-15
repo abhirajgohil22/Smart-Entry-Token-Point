@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'apps.tokens',
     'apps.security_photos',
     'apps.facerecognition',
+    'apps.profile',
 ]
 
 MIDDLEWARE = [
