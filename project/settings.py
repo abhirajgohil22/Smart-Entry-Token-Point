@@ -255,7 +255,7 @@ SIMPLE_JWT = {
 
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='https://*.app.github.dev,http://localhost:3000,http://localhost:8000,http://127.0.0.1:8000',
+    default='https://*.app.github.dev,http://localhost:3000,http://localhost:8000,http://127.0.0.1:8000,https://*.vercel.app',
     cast=Csv()
 )
 
