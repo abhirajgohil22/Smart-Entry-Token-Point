@@ -13,3 +13,7 @@ from django.core.wsgi import get_wsgi_application
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
 
 application = get_wsgi_application()
+# Vercel's Python serverless runtime looks for a callable named `app`.
+# Keep both names available to support Django's standard WSGI interface
+# and the serverless deployment contract.
+app = application
