@@ -2,9 +2,6 @@
   "buildCommand": "bash build.sh",
   "outputDirectory": "staticfiles",
   "framework": "django",
-  "python": {
-    "version": "3.12"
-  },
   "env": {
     "DJANGO_SETTINGS_MODULE": "project.settings",
     "DEBUG": "False",
