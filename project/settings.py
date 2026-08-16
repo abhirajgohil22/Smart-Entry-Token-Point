@@ -159,14 +159,46 @@ WSGI_APPLICATION = 'project.wsgi.application'
 # Database Configuration
 # ============================================================================
 
-# Support PostgreSQL (production) or SQLite (development)
-DEFAULT_DATABASE_URL = f'sqlite:///{BASE_DIR / "db.sqlite3"}'
+def is_psycopg_available() -> bool:
+    """Return True when the PostgreSQL driver can be imported."""
+    try:
+        import psycopg  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def build_database_config(database_url: str | None = None, psycopg_available: bool | None = None):
+    """Prefer PostgreSQL when possible, but fall back to SQLite in serverless runtimes."""
+    if psycopg_available is None:
+        psycopg_available = is_psycopg_available()
+
+    configured_url = database_url or os.environ.get('DATABASE_URL')
+    default_sqlite_path = BASE_DIR / 'db.sqlite3'
+    default_url = f'sqlite:///{default_sqlite_path}'
+
+    if configured_url and psycopg_available:
+        return dj_database_url.config(default=configured_url, conn_max_age=600)
+
+    if configured_url and not psycopg_available:
+        logging.warning(
+            'DATABASE_URL configured for PostgreSQL but psycopg is unavailable; '
+            'falling back to SQLite for this runtime.'
+        )
+        return {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': str(default_sqlite_path),
+        }
+
+    return dj_database_url.config(default=default_url, conn_max_age=600)
+
+
+# Support PostgreSQL (production) or SQLite (development).
+# SQLite is used automatically when the PostgreSQL driver is unavailable, which
+# keeps serverless deployments from crashing during Django startup.
 DATABASES = {
     'default': {
-        **dj_database_url.config(
-            default=DEFAULT_DATABASE_URL,
-            conn_max_age=600,
-        ),
+        **build_database_config(),
         'ATOMIC_REQUESTS': False,
     }
 }
