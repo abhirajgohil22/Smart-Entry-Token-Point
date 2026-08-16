@@ -26,13 +26,13 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
-    default='localhost,127.0.0.1,0.0.0.0,testserver,.app.github.dev,*.app.github.dev',
+    default='localhost,127.0.0.1,0.0.0.0,testserver,.app.github.dev,*.app.github.dev,*.vercel.app,vercel.app',
     cast=Csv(),
 )
 
 CSRF_TRUSTED_ORIGINS = config(
     'CSRF_TRUSTED_ORIGINS',
-    default='https://*.app.github.dev,http://localhost:8000,http://127.0.0.1:8000',
+    default='https://*.app.github.dev,https://*.vercel.app,http://localhost:8000,http://127.0.0.1:8000',
     cast=Csv(),
 )
 

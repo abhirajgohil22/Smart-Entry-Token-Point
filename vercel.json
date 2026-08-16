@@ -1,0 +1,38 @@
+{
+  "buildCommand": "bash build.sh",
+  "outputDirectory": "staticfiles",
+  "framework": "django",
+  "python": {
+    "version": "3.12"
+  },
+  "env": {
+    "DJANGO_SETTINGS_MODULE": "project.settings",
+    "DEBUG": "False",
+    "SECURE_SSL_REDIRECT": "False"
+  },
+  "functions": {
+    "project/wsgi.py": {
+      "maxDuration": 60
+    }
+  },
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/staticfiles/$1",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "/media/(.*)",
+      "dest": "/$1",
+      "status": 404
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/project/wsgi.py",
+      "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
+    }
+  ]
+}
+
