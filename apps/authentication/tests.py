@@ -15,6 +15,15 @@ from apps.authentication.models import EmailOTP
 User = get_user_model()
 
 
+class LandingPageTests(TestCase):
+    def test_root_route_renders_landing_page(self):
+        response = self.client.get('/', follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Smart Entry Token Point')
+        self.assertContains(response, 'Secure campus access')
+
+
 class RegistrationAPITests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -209,4 +218,41 @@ class RegistrationAPITests(TestCase):
                     self.assertIn(response.status_code, [400])
                 else:
                     self.assertEqual(response.status_code, 429)
+
+    def test_verify_email_success_marks_otp_as_verified(self):
+        user = User.objects.create_user(
+            username='verify-user',
+            email='verify@example.com',
+            password='S3cur3Password!',
+            is_active=False,
+        )
+        otp = EmailOTP.create_for_user(user)
+
+        response = self.client.post('/api/v1/auth/verify-email/', {
+            'email': 'verify@example.com',
+            'code': otp.code,
+        }, format='json')
+
+        self.assertEqual(response.status_code, 200)
+        otp.refresh_from_db()
+        self.assertTrue(otp.is_verified)
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)
+
+    def test_verify_email_rejects_invalid_code(self):
+        user = User.objects.create_user(
+            username='bad-verify-user',
+            email='badverify@example.com',
+            password='S3cur3Password!',
+            is_active=False,
+        )
+        EmailOTP.create_for_user(user)
+
+        response = self.client.post('/api/v1/auth/verify-email/', {
+            'email': 'badverify@example.com',
+            'code': '000000',
+        }, format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('code', response.data)
 

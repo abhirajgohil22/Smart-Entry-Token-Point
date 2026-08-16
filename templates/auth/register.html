@@ -1,194 +1,366 @@
-<!DOCTYPE html>
+{% extends 'base.html' %}
+{% block title %}Create Account - Smart Entry Token Point{% endblock %}
 
-<html lang="en">
-  
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Student Registration</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <style>
-      .camera-box {
-        width: 100%;
-        max-width: 480px;
-        aspect-ratio: 4 / 3;
-        background: #111;
-        border-radius: 0.75rem;
-        overflow: hidden;
-      }
-      video, canvas {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      }
-      .hidden {
-        display: none !important;
-      }
-      .challenge-box {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: .75rem;
-        padding: 1rem;
-        margin-top: 1rem;
-      }
-    </style>
-  </head>
-  <body class="bg-light">
-    <div class="container py-5">
-      <div class="row justify-content-center">
-        <div class="col-lg-8">
-          <div class="card shadow-sm border-0">
-            <div class="card-body p-4 p-md-5">
-              <h2 class="mb-4">Student Registration</h2>
+{% block content %}
+<div class="auth-shell">
+  <div class="auth-backdrop"></div>
+  <div class="container py-5">
+    <div class="row justify-content-center g-4 align-items-center min-vh-100">
+      <div class="col-xl-5 col-lg-6 col-md-8">
+        <div class="auth-card">
+          <div class="auth-card__header">
+            <div class="brand-badge"><i class="fas fa-shield-alt"></i></div>
+            <h1>Create account</h1>
+            <p>Join the campus access platform with secure identity verification.</p>
+          </div>
 
-              <form id="registration-form" method="post" enctype="multipart/form-data">
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Student ID</label>
-                    <input type="text" name="student_id" class="form-control" required />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Full Name</label>
-                    <input type="text" name="full_name" class="form-control" required />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control" required />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Password</label>
-                    <input type="password" name="password" class="form-control" required />
+          <div class="auth-card__body">
+            <div id="status" class="status-box d-none"></div>
+
+            <form id="registration-form" method="post" enctype="multipart/form-data">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Student ID</label>
+                  <input type="text" name="student_id" class="form-control" placeholder="STU-2026-001" required />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Full name</label>
+                  <input type="text" name="full_name" class="form-control" placeholder="Jane Student" required />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Email</label>
+                  <input type="email" name="email" class="form-control" placeholder="student@campus.edu" required />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Password</label>
+                  <input type="password" name="password" class="form-control" placeholder="Create a secure password" required />
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <label class="form-label">Live photo</label>
+                <div class="camera-box mx-auto mb-3">
+                  <video id="video" autoplay playsinline></video>
+                  <canvas id="canvas" class="d-none"></canvas>
+                  <div class="camera-placeholder" id="camera-placeholder">
+                    <i class="fas fa-camera"></i>
+                    <span>Camera ready</span>
                   </div>
                 </div>
 
-                <div class="mt-4">
-                  <label class="form-label">Live Photo</label>
-                  <div class="camera-box mx-auto mb-3">
-                    <video id="video" autoplay playsinline></video>
-                    <canvas id="canvas" class="hidden"></canvas>
-                  </div>
-                  <div id="challenge-box" class="challenge-box hidden">
-                    <strong>Challenge:</strong>
-                    <span id="challenge-text">Waiting for camera...</span>
-                  </div>
-                  <div class="d-flex gap-2 flex-wrap mt-3">
-                    <button type="button" id="start-camera" class="btn btn-primary">Start Camera</button>
-                    <button type="button" id="capture-photo" class="btn btn-outline-primary">Capture Photo</button>
-                  </div>
-                  <input type="file" id="live_photo" name="live_photo" class="form-control mt-3" accept="image/png,image/jpeg" required />
+                <div id="challenge-box" class="challenge-box d-none">
+                  <strong>Prompt:</strong>
+                  <span id="challenge-text">Waiting for camera...</span>
                 </div>
 
-                <div id="status" class="alert alert-secondary mt-3 d-none"></div>
+                <div class="d-flex gap-2 flex-wrap mt-3">
+                  <button type="button" id="start-camera" class="btn btn-primary flex-fill">Start camera</button>
+                  <button type="button" id="capture-photo" class="btn btn-outline-primary flex-fill">Capture photo</button>
+                </div>
 
-                <button type="submit" class="btn btn-success mt-4 w-100">Register</button>
-              </form>
+                <input type="file" id="live_photo" name="live_photo" class="form-control mt-3" accept="image/png,image/jpeg" required />
+              </div>
+
+              <button type="submit" class="btn btn-success auth-submit">Create account</button>
+            </form>
+
+            <div class="auth-footer">
+              <span>Already have an account?</span>
+              <a href="/login/">Log in</a>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
+</div>
+{% endblock %}
 
-    <script>
-      const video = document.getElementById('video');
-      const canvas = document.getElementById('canvas');
-      const fileInput = document.getElementById('live_photo');
-      const startCameraButton = document.getElementById('start-camera');
-      const captureButton = document.getElementById('capture-photo');
-      const statusBox = document.getElementById('status');
+{% block extra_css %}
+<style>
+  .auth-shell {
+    position: relative;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #eef6ff 0%, #f4f8ff 35%, #eefaf5 100%);
+    overflow: hidden;
+  }
 
-      let stream = null;
-      const challengeBox = document.getElementById('challenge-box');
-      const challengeText = document.getElementById('challenge-text');
-      const livenessChallenges = [
-        'Blink slowly',
-        'Turn head slightly right',
-        'Look left and right',
-        'Nod once gently'
-      ];
+  .auth-backdrop {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle at top left, rgba(11, 61, 145, 0.14), transparent 32%),
+      radial-gradient(circle at bottom right, rgba(0, 168, 107, 0.12), transparent 28%);
+  }
 
-      function setChallengePrompt() {
-        const message = livenessChallenges[Math.floor(Math.random() * livenessChallenges.length)];
-        challengeText.textContent = message;
-        challengeBox.classList.remove('hidden');
+  .auth-card {
+    position: relative;
+    z-index: 1;
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(11, 61, 145, 0.08);
+    border-radius: 24px;
+    box-shadow: 0 30px 70px rgba(15, 38, 83, 0.15);
+    overflow: hidden;
+  }
+
+  .auth-card__header {
+    background: linear-gradient(135deg, #0b3d91 0%, #1e5cbc 100%);
+    color: #fff;
+    text-align: center;
+    padding: 2rem 1.5rem 1.5rem;
+  }
+
+  .brand-badge {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,0.12);
+    font-size: 1.6rem;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+
+  .auth-card__header h1 {
+    margin: 0;
+    font-weight: 700;
+    font-size: clamp(1.8rem, 2vw, 2.5rem);
+  }
+
+  .auth-card__header p {
+    margin: 0.75rem auto 0;
+    max-width: 28rem;
+    color: rgba(255,255,255,0.82);
+  }
+
+  .auth-card__body {
+    padding: 1.5rem;
+  }
+
+  .status-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border-left: 4px solid #0b3d91;
+    border-radius: 12px;
+    background: #f3f8ff;
+    color: #153a68;
+    margin-bottom: 1rem;
+  }
+
+  .status-box.alert-success {
+    background: rgba(0, 184, 148, 0.08);
+    border-color: #00b894;
+    color: #00664d;
+  }
+
+  .status-box.alert-danger {
+    background: rgba(214, 48, 49, 0.08);
+    border-color: #d63031;
+    color: #7a1a1c;
+  }
+
+  .status-box.alert-warning {
+    background: rgba(241, 196, 15, 0.08);
+    border-color: #f1c40f;
+    color: #7a5a00;
+  }
+
+  .status-box.alert-info {
+    background: rgba(9, 132, 227, 0.08);
+    border-color: #0984e3;
+    color: #003d7a;
+  }
+
+  .camera-box {
+    position: relative;
+    width: 100%;
+    max-width: 460px;
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(145deg, #111827, #1f2937);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.08);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+  }
+
+  video, canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .camera-placeholder {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    color: rgba(255,255,255,0.7);
+    font-weight: 600;
+  }
+
+  .camera-placeholder i {
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .challenge-box {
+    background: #f8fafc;
+    border: 1px solid #dfe7f1;
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    color: #2d3748;
+    margin-top: 1rem;
+  }
+
+  .auth-submit {
+    width: 100%;
+    margin-top: 1.5rem;
+    min-height: 48px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .auth-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    color: #4a5568;
+    font-size: 0.95rem;
+  }
+
+  .auth-footer a {
+    color: #0b3d91;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .auth-footer a:hover {
+    text-decoration: underline;
+  }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const fileInput = document.getElementById('live_photo');
+  const statusBox = document.getElementById('status');
+  const startCameraButton = document.getElementById('start-camera');
+  const captureButton = document.getElementById('capture-photo');
+  const challengeBox = document.getElementById('challenge-box');
+  const challengeText = document.getElementById('challenge-text');
+  const cameraPlaceholder = document.getElementById('camera-placeholder');
+  const form = document.getElementById('registration-form');
+
+  let stream = null;
+  const livenessChallenges = [
+    'Blink slowly',
+    'Turn head slightly right',
+    'Look left and right',
+    'Nod once gently'
+  ];
+
+  function setStatus(message, type = 'info') {
+    statusBox.className = `status-box alert-${type}`;
+    statusBox.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'danger' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i><div>${message}</div>`;
+    statusBox.classList.remove('d-none');
+  }
+
+  function setChallengePrompt() {
+    const message = livenessChallenges[Math.floor(Math.random() * livenessChallenges.length)];
+    challengeText.textContent = message;
+    challengeBox.classList.remove('d-none');
+  }
+
+  async function startCamera() {
+    try {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
       }
 
-      async function startCamera() {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-          video.srcObject = stream;
-          statusBox.textContent = 'Camera ready. Capture a photo to continue.';
-          statusBox.className = 'alert alert-info mt-3';
-          statusBox.classList.remove('d-none');
-        } catch (error) {
-          statusBox.textContent = 'Camera access was denied or unavailable.';
-          statusBox.className = 'alert alert-danger mt-3';
-          statusBox.classList.remove('d-none');
-        }
-      }
-
-      function capturePhoto() {
-        if (!stream) {
-          statusBox.textContent = 'Start the camera first.';
-          statusBox.className = 'alert alert-warning mt-3';
-          statusBox.classList.remove('d-none');
-          return;
-        }
-
-        setChallengePrompt();
-
-        const context = canvas.getContext('2d');
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            statusBox.textContent = 'Could not capture the image.';
-            statusBox.className = 'alert alert-danger mt-3';
-            statusBox.classList.remove('d-none');
-            return;
-          }
-
-          const file = new File([blob], 'live-photo.png', { type: 'image/png' });
-          const dataTransfer = new DataTransfer();
-          dataTransfer.items.add(file);
-          fileInput.files = dataTransfer.files;
-
-          statusBox.textContent = 'Photo captured successfully. Follow the challenge prompt.';
-          statusBox.className = 'alert alert-success mt-3';
-          statusBox.classList.remove('d-none');
-        }, 'image/png', 0.95);
-      }
-
-      startCameraButton.addEventListener('click', startCamera);
-      captureButton.addEventListener('click', capturePhoto);
-
-      document.getElementById('registration-form').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const data = new FormData(form);
-
-        const response = await fetch('/api/v1/auth/register/', {
-          method: 'POST',
-          body: data,
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          const message = result?.detail || Object.values(result || {})[0] || 'Registration failed.';
-          statusBox.textContent = Array.isArray(message) ? message.join(', ') : message;
-          statusBox.className = 'alert alert-danger mt-3';
-          statusBox.classList.remove('d-none');
-          return;
-        }
-
-        statusBox.textContent = result.message || 'Registration successful.';
-        statusBox.className = 'alert alert-success mt-3';
-        statusBox.classList.remove('d-none');
-        form.reset();
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false,
       });
-    </script>
-  </body>
-</html>
+
+      video.srcObject = stream;
+      cameraPlaceholder.style.display = 'none';
+      setStatus('Camera ready. Capture a live photo to continue.', 'info');
+    } catch (error) {
+      setStatus('Camera access denied. Please allow camera permissions or continue with the secure image upload.', 'danger');
+    }
+  }
+
+  function capturePhoto() {
+    if (!stream) {
+      setStatus('Start the camera first before capturing your live photo.', 'warning');
+      return;
+    }
+
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    setChallengePrompt();
+
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setStatus('Could not capture the image. Please try again.', 'danger');
+        return;
+      }
+
+      const file = new File([blob], 'live-photo.png', { type: 'image/png' });
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      fileInput.files = dataTransfer.files;
+      setStatus('Photo captured successfully. Ready to submit.', 'success');
+    }, 'image/png', 0.95);
+  }
+
+  startCameraButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    startCamera();
+  });
+
+  captureButton.addEventListener('click', (event) => {
+    event.preventDefault();
+    capturePhoto();
+  });
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(form);
+    const response = await fetch('/api/v1/auth/register/', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      const message = result?.detail || Object.values(result || {})[0] || 'Registration failed.';
+      setStatus(Array.isArray(message) ? message.join(', ') : message, 'danger');
+      return;
+    }
+
+    setStatus(result.message || 'Registration successful.', 'success');
+    form.reset();
+    challengeBox.classList.add('d-none');
+    cameraPlaceholder.style.display = 'grid';
+  });
+
+  window.addEventListener('load', () => {
+    setTimeout(() => startCamera(), 250);
+  });
+</script>
+{% endblock %}

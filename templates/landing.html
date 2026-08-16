@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+
+{% block title %}Smart Entry Token Point{% endblock %}
+
+{% block content %}
+<div class="landing-shell">
+  <div class="landing-orb orb-one"></div>
+  <div class="landing-orb orb-two"></div>
+  <div class="landing-orb orb-three"></div>
+
+  <div class="container py-5 position-relative">
+    <nav class="landing-nav">
+      <div class="brand-wrap">
+        <div class="brand-mark"><i class="fas fa-shield-alt"></i></div>
+        <div>
+          <div class="brand-name">Smart Entry Token Point</div>
+          <small>Secure campus access</small>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <a href="/login/" class="btn btn-outline-primary">Log in</a>
+        <a href="/register/" class="btn btn-primary">Create account</a>
+      </div>
+    </nav>
+
+    <div class="row align-items-center hero-row">
+      <div class="col-lg-7">
+        <div class="eyebrow">Campus security, simplified</div>
+        <h1>Secure access with identity verification built for modern campuses.</h1>
+        <p class="lead-text">
+          Manage student entry, token issuance, and photo-based verification from one clean platform designed for reliability and trust.
+        </p>
+
+        <div class="cta-row">
+          <a href="/register/" class="btn btn-primary btn-lg">Get started</a>
+          <a href="/login/" class="btn btn-outline-primary btn-lg">Existing member</a>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <strong>99.9%</strong>
+            <span>System uptime</span>
+          </div>
+          <div class="stat-card">
+            <strong>24/7</strong>
+            <span>Entry monitoring</span>
+          </div>
+          <div class="stat-card">
+            <strong>Live</strong>
+            <span>Photo verification</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-5">
+        <div class="hero-panel">
+          <div class="panel-header">
+            <div class="panel-pill">Live status</div>
+            <span class="panel-dot"></span>
+          </div>
+
+          <div class="panel-body">
+            <div class="feature-row">
+              <div class="feature-icon blue"><i class="fas fa-id-card"></i></div>
+              <div>
+                <h3>Student verification</h3>
+                <p>Verify identity with secure registration and live challenge checks.</p>
+              </div>
+            </div>
+            <div class="feature-row">
+              <div class="feature-icon green"><i class="fas fa-key"></i></div>
+              <div>
+                <h3>Token issuance</h3>
+                <p>Generate trusted access tokens for authorized campus movement.</p>
+              </div>
+            </div>
+            <div class="feature-row">
+              <div class="feature-icon amber"><i class="fas fa-camera"></i></div>
+              <div>
+                <h3>Photo security</h3>
+                <p>Capture and review security photos to maintain audit-ready evidence.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .landing-shell {
+    position: relative;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f4f8ff 0%, #f9fbff 38%, #eefaf5 100%);
+    overflow: hidden;
+  }
+
+  .landing-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(18px);
+    opacity: 0.4;
+  }
+
+  .orb-one {
+    width: 420px;
+    height: 420px;
+    background: rgba(47, 128, 237, 0.1);
+    top: -90px;
+    left: -80px;
+  }
+
+  .orb-two {
+    width: 360px;
+    height: 360px;
+    background: rgba(20, 184, 166, 0.18);
+    right: -60px;
+    bottom: 90px;
+  }
+
+  .orb-three {
+    width: 260px;
+    height: 260px;
+    background: rgba(59, 130, 246, 0.1);
+    left: 42%;
+    top: 18%;
+  }
+
+  .landing-nav {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 0 2rem;
+  }
+
+  .brand-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+  }
+
+  .brand-mark {
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0b3d91 0%, #1e5cbc 100%);
+    color: white;
+    box-shadow: 0 16px 32px rgba(11,61,145,0.2);
+  }
+
+  .brand-name {
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+  }
+
+  .brand-wrap small {
+    display: block;
+    color: #4b5563;
+  }
+
+  .nav-actions {
+    display: flex;
+    gap: 0.85rem;
+    align-items: center;
+  }
+
+  .hero-row {
+    position: relative;
+    z-index: 1;
+    padding-top: 1.2rem;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(11, 61, 145, 0.08);
+    color: #0b3d91;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: clamp(2.7rem, 4vw, 5rem);
+    line-height: 1.05;
+    letter-spacing: -0.06em;
+    margin-top: 1rem;
+    color: #111827;
+    max-width: 720px;
+  }
+
+  .lead-text {
+    font-size: 1.12rem;
+    line-height: 1.8;
+    color: #475569;
+    max-width: 640px;
+    margin-top: 1rem;
+  }
+
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .btn-lg {
+    padding: 0.9rem 1.5rem;
+    font-weight: 700;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+    max-width: 520px;
+  }
+
+  .stat-card {
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(148,163,184,0.2);
+    border-radius: 18px;
+    padding: 1rem 1.1rem;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
+  }
+
+  .stat-card strong {
+    display: block;
+    font-size: 1.2rem;
+    color: #111827;
+  }
+
+  .stat-card span {
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+
+  .hero-panel {
+    position: relative;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid rgba(148,163,184,0.2);
+    border-radius: 24px;
+    box-shadow: 0 28px 60px rgba(15, 23, 42, 0.12);
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(148,163,184,0.15);
+    background: rgba(248,250,252,0.9);
+  }
+
+  .panel-pill {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #0b3d91;
+  }
+
+  .panel-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 6px rgba(34,197,94,0.12);
+  }
+
+  .panel-body {
+    padding: 1.25rem;
+  }
+
+  .feature-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(148,163,184,0.15);
+  }
+
+  .feature-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .feature-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    color: white;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+
+  .feature-icon.blue { background: linear-gradient(135deg, #0b3d91, #1e5cbc); }
+  .feature-icon.green { background: linear-gradient(135deg, #0f9f6e, #2db88f); }
+  .feature-icon.amber { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+
+  .feature-row h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #111827;
+  }
+
+  .feature-row p {
+    margin: 0.35rem 0 0;
+    color: #64748b;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .landing-nav {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .nav-actions {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}

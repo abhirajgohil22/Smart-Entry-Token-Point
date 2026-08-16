@@ -2,16 +2,24 @@
 Health check views for monitoring system status
 """
 
-from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-from rest_framework import status
+import logging
+
 from django.db import connections
 from django.db.utils import OperationalError
 from django.http import HttpResponse, JsonResponse
-import logging
+from django.views.generic import TemplateView
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 
 logger = logging.getLogger(__name__)
+
+
+class LandingPageView(TemplateView):
+    """Public landing page for the Smart Entry Token Point platform."""
+
+    template_name = 'landing.html'
 
 
 def api_home(request):

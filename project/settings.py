@@ -21,7 +21,8 @@ LOGS_DIR.mkdir(exist_ok=True)
 SECRET_KEY = config('SECRET_KEY', default='dev-secret-key-change-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+# Default to True in local development so the app works immediately with the bundled templates.
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config(
     'ALLOWED_HOSTS',
@@ -58,6 +59,12 @@ FACE_RECOGNITION_BACKEND = config('FACE_RECOGNITION_BACKEND', default='dlib')
 # Application definition
 # ============================================================================
 
+# Determine if Cloudinary should be used (only if credentials are provided)
+CLOUDINARY_CLOUD_NAME = config('CLOUDINARY_CLOUD_NAME', default='')
+CLOUDINARY_API_KEY = config('CLOUDINARY_API_KEY', default='')
+CLOUDINARY_API_SECRET = config('CLOUDINARY_API_SECRET', default='')
+USE_CLOUDINARY = bool(CLOUDINARY_CLOUD_NAME and CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET)
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -72,7 +79,13 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'drf_spectacular',
+]
 
+# Add Cloudinary only if credentials are available
+if USE_CLOUDINARY:
+    INSTALLED_APPS.extend(['cloudinary', 'cloudinary_storage'])
+
+INSTALLED_APPS.extend([
     # Local apps
     'apps.authentication',
     'apps.tokens',
@@ -80,7 +93,7 @@ INSTALLED_APPS = [
     'apps.facerecognition',
     'apps.profile',
     'apps.notifications',
-]
+])
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -156,8 +169,37 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
+if DEBUG:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# ============================================================================
+# Cloudinary Configuration - Image Storage
+# ============================================================================
+
+if USE_CLOUDINARY:
+    import cloudinary
+    
+    cloudinary.config(
+        cloud_name=CLOUDINARY_CLOUD_NAME,
+        api_key=CLOUDINARY_API_KEY,
+        api_secret=CLOUDINARY_API_SECRET,
+    )
+    
+    # Configure Cloudinary storage for django-cloudinary-storage
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': CLOUDINARY_CLOUD_NAME,
+        'API_KEY': CLOUDINARY_API_KEY,
+        'API_SECRET': CLOUDINARY_API_SECRET,
+    }
+    
+    # Use Cloudinary for media file storage
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+else:
+    # Fall back to local storage if Cloudinary credentials not provided
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -265,9 +307,16 @@ if DEBUG and 'localhost' in AWS_S3_ENDPOINT or '127.0.0.1' in AWS_S3_ENDPOINT:
 # Email Configuration
 # ============================================================================
 
-EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-SENDGRID_API_KEY = config('SENDGRID_API_KEY', default='')
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='your-gmail-address@gmail.com')
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='your-gmail-address@gmail.com')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
 
+SENDGRID_API_KEY = config('SENDGRID_API_KEY', default='')
 if EMAIL_BACKEND == 'anymail.backends.sendgrid.EmailBackend':
     ANYMAIL = {
         'SENDGRID_API_KEY': SENDGRID_API_KEY,

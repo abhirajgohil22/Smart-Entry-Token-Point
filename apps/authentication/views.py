@@ -1,17 +1,61 @@
 import os
 
 from django.conf import settings
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, get_user_model
 from django.utils import timezone
 from django.views.generic import TemplateView
 from rest_framework import generics, permissions, status
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.authentication.models import EmailOTP
 from apps.authentication.serializers import LoginSerializer, RegistrationSerializer
 from apps.authentication.throttles import LoginRateThrottle
 from apps.notifications.services import NotificationService
 from apps.security_photos.models import SecurityPhoto
+
+User = get_user_model()
+
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def verify_email(request):
+    email = (request.data.get('email') or '').strip().lower()
+    code = (request.data.get('code') or '').strip()
+
+    if not email or not code:
+        return Response({'email': ['Email is required.'], 'code': ['Verification code is required.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    user = User.objects.filter(email__iexact=email).first()
+    if user is None:
+        return Response({'email': ['No account was found for this email.']}, status=status.HTTP_404_NOT_FOUND)
+
+    otp = EmailOTP.objects.filter(user=user, code=code).order_by('-created_at').first()
+    if otp is None:
+        return Response({'code': ['Invalid verification code.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    if otp.is_expired():
+        return Response({'code': ['This verification code has expired. Please request a new one.']}, status=status.HTTP_400_BAD_REQUEST)
+
+    if otp.is_verified:
+        user.is_active = True
+        user.save(update_fields=['is_active'])
+        return Response({'message': 'Email already verified.', 'email': user.email}, status=status.HTTP_200_OK)
+
+    otp.is_verified = True
+    otp.save(update_fields=['is_verified'])
+    user.is_active = True
+    user.save(update_fields=['is_active'])
+
+    NotificationService.dispatch(
+        user,
+        'EMAIL_VERIFICATION',
+        metadata={'otp_code': code, 'purpose': 'VERIFIED'},
+        channel='EMAIL',
+    )
+
+    return Response({'message': 'Email verified successfully.', 'email': user.email}, status=status.HTTP_200_OK)
 
 
 class RegistrationPageView(TemplateView):
@@ -32,7 +76,7 @@ class RegisterAPIView(generics.CreateAPIView):
         user = serializer.save()
         return Response(
             {
-                'message': 'Registration successful. Check your email for the OTP verification code.',
+                'message': 'Registration successful. Check your email for the verification code.',
                 'user_id': str(user.pk),
                 'email': user.email,
                 'otp_required': True,
