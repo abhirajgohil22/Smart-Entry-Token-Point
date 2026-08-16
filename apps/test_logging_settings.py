@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 
 
@@ -27,3 +28,16 @@ def test_build_database_config_falls_back_to_sqlite_when_psycopg_unavailable(mon
     assert config['ENGINE'] == 'django.db.backends.sqlite3'
     assert config['NAME'].endswith('db.sqlite3')
     assert '/tmp/' in config['NAME'] or '/var/' not in config['NAME']
+
+
+def test_sqlite_runtime_db_needs_schema_initialization(tmp_path):
+    from project.wsgi import should_initialize_sqlite_db
+
+    db_path = tmp_path / 'runtime.sqlite3'
+    db_path.touch()
+    assert should_initialize_sqlite_db(str(db_path)) is True
+
+    conn = sqlite3.connect(str(db_path))
+    conn.execute('CREATE TABLE auth_user (id INTEGER PRIMARY KEY)')
+    conn.close()
+    assert should_initialize_sqlite_db(str(db_path)) is False
