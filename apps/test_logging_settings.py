@@ -26,3 +26,4 @@ def test_build_database_config_falls_back_to_sqlite_when_psycopg_unavailable(mon
 
     assert config['ENGINE'] == 'django.db.backends.sqlite3'
     assert config['NAME'].endswith('db.sqlite3')
+    assert '/tmp/' in config['NAME'] or '/var/' not in config['NAME']

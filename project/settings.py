@@ -16,20 +16,16 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-def resolve_log_dir(base_dir: Path) -> Path:
-    """Return a writable directory for log files.
-
-    Vercel and other serverless runtimes mount the project directory as read-only,
-    so a local logs folder under BASE_DIR may fail at startup. We fall back to
-    /tmp when needed.
-    """
+def resolve_runtime_dir(base_dir: Path, relative_path: str = 'logs') -> Path:
+    """Return a writable directory for runtime artifacts in serverless environments."""
     candidates = []
-    configured_dir = os.environ.get('LOG_DIR')
+    configured_dir = os.environ.get('LOG_DIR') or os.environ.get('RUNTIME_DIR')
     if configured_dir:
         candidates.append(Path(configured_dir).expanduser())
+
     candidates.extend([
-        base_dir / 'logs',
-        Path('/tmp') / 'smart-entry-token-point' / 'logs',
+        base_dir / relative_path,
+        Path('/tmp') / 'smart-entry-token-point' / relative_path,
     ])
 
     for candidate in candidates:
@@ -40,10 +36,31 @@ def resolve_log_dir(base_dir: Path) -> Path:
         except OSError:
             continue
 
-    return Path('/tmp') / 'smart-entry-token-point' / 'logs'
+    return Path('/tmp') / 'smart-entry-token-point' / relative_path
 
 
-LOGS_DIR = resolve_log_dir(BASE_DIR)
+def resolve_log_dir(base_dir: Path) -> Path:
+    """Backward-compatible alias for the serverless-safe log directory resolver."""
+    return resolve_runtime_dir(base_dir, 'logs')
+
+
+def resolve_runtime_file(base_dir: Path, filename: str) -> Path:
+    """Return a writable file path for runtime state such as SQLite or logs."""
+    directory = resolve_runtime_dir(base_dir, 'runtime')
+    file_path = directory / filename
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        if os.access(directory, os.W_OK):
+            return file_path
+    except OSError:
+        pass
+
+    fallback = Path('/tmp') / 'smart-entry-token-point' / filename
+    fallback.parent.mkdir(parents=True, exist_ok=True)
+    return fallback
+
+
+LOGS_DIR = resolve_runtime_dir(BASE_DIR, 'logs')
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY', default='dev-secret-key-change-in-production')
@@ -174,7 +191,7 @@ def build_database_config(database_url: str | None = None, psycopg_available: bo
         psycopg_available = is_psycopg_available()
 
     configured_url = database_url or os.environ.get('DATABASE_URL')
-    default_sqlite_path = BASE_DIR / 'db.sqlite3'
+    default_sqlite_path = resolve_runtime_file(BASE_DIR, 'db.sqlite3')
     default_url = f'sqlite:///{default_sqlite_path}'
 
     if configured_url and psycopg_available:
