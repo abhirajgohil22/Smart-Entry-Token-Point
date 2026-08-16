@@ -14,8 +14,36 @@ import dj_database_url
 
 # Build paths inside the project
 BASE_DIR = Path(__file__).resolve().parent.parent
-LOGS_DIR = BASE_DIR / 'logs'
-LOGS_DIR.mkdir(exist_ok=True)
+
+
+def resolve_log_dir(base_dir: Path) -> Path:
+    """Return a writable directory for log files.
+
+    Vercel and other serverless runtimes mount the project directory as read-only,
+    so a local logs folder under BASE_DIR may fail at startup. We fall back to
+    /tmp when needed.
+    """
+    candidates = []
+    configured_dir = os.environ.get('LOG_DIR')
+    if configured_dir:
+        candidates.append(Path(configured_dir).expanduser())
+    candidates.extend([
+        base_dir / 'logs',
+        Path('/tmp') / 'smart-entry-token-point' / 'logs',
+    ])
+
+    for candidate in candidates:
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            if os.access(candidate, os.W_OK):
+                return candidate
+        except OSError:
+            continue
+
+    return Path('/tmp') / 'smart-entry-token-point' / 'logs'
+
+
+LOGS_DIR = resolve_log_dir(BASE_DIR)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY', default='dev-secret-key-change-in-production')
@@ -359,7 +387,7 @@ LOGGING = {
         'file': {
             'level': 'WARNING',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'django.log',
+            'filename': str(LOGS_DIR / 'django.log'),
             'maxBytes': 1024 * 1024 * 10,  # 10MB
             'backupCount': 5,
             'formatter': 'verbose',
